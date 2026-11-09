@@ -61,27 +61,37 @@ cd "$REPO_ROOT"
 mkdir -p "$OUTPUT_DIR"
 
 if [ "$DO_BUILD" = true ]; then
-    echo "==> Building Linux amd64 release binary with Docker..."
     FEATURES="acp-bridge,agent-runtime,channel-acp-server,channel-discord,channel-email,channel-filesystem,channel-git,channel-lark,channel-matrix,channel-telegram,channel-webhook,gateway,observability-prometheus,plugins-wasm-cranelift,schema-export,tool-claude-code,tool-claude-code-runner,tool-codex-cli,tool-composio,tool-gemini-cli,tool-google-workspace,tool-jira,tool-linkedin,tool-microsoft365,tool-notion,tool-opencode-cli,tool-project-intel,tools-external,whatsapp-web"
 
-    # Ensure builder image exists
-    if ! docker image inspect zeroclaw-linux-builder >/dev/null 2>&1; then
-        echo "==> Building zeroclaw-linux-builder Docker image..."
-        docker build --platform linux/amd64 -t zeroclaw-linux-builder - << 'DOCKERFILE'
+    export PATH="/opt/homebrew/bin:$PATH"
+    if command -v cargo-zigbuild >/dev/null 2>&1 && command -v zig >/dev/null 2>&1; then
+        echo "==> Building Linux amd64 release binary natively via cargo-zigbuild..."
+        rustup target add "${TARGET}" >/dev/null 2>&1 || true
+        cargo zigbuild --release --locked --target "${TARGET}.2.28" --no-default-features --features "${FEATURES}"
+        mkdir -p "$OUTPUT_DIR"
+        cp "target/${TARGET}/release/zeroclaw" "$OUTPUT_DIR/zeroclaw"
+        strip "$OUTPUT_DIR/zeroclaw" 2>/dev/null || true
+    else
+        echo "==> Building Linux amd64 release binary with Docker..."
+        # Ensure builder image exists
+        if ! docker image inspect zeroclaw-linux-builder >/dev/null 2>&1; then
+            echo "==> Building zeroclaw-linux-builder Docker image..."
+            docker build --platform linux/amd64 -t zeroclaw-linux-builder - << 'DOCKERFILE'
 FROM --platform=linux/amd64 rust:1.99-slim
 RUN apt-get update && apt-get install -y pkg-config g++ && rm -rf /var/lib/apt/lists/*
 DOCKERFILE
-    fi
+        fi
 
-    # Compile binary
-    docker run --rm --platform linux/amd64 \
-        -v "$REPO_ROOT":/app:ro \
-        -v zeroclaw-cargo-registry:/usr/local/cargo/registry \
-        -v zeroclaw-cargo-git:/usr/local/cargo/git \
-        -v "$OUTPUT_DIR":/output \
-        -w /app \
-        zeroclaw-linux-builder \
-        bash -c "cargo build --release --locked --target ${TARGET} --target-dir /tmp/target --no-default-features --features '${FEATURES}' && cp /tmp/target/${TARGET}/release/zeroclaw /output/zeroclaw && strip /output/zeroclaw && chmod 755 /output/zeroclaw"
+        # Compile binary
+        docker run --rm --platform linux/amd64 \
+            -v "$REPO_ROOT":/app:ro \
+            -v zeroclaw-cargo-registry:/usr/local/cargo/registry \
+            -v zeroclaw-cargo-git:/usr/local/cargo/git \
+            -v "$OUTPUT_DIR":/output \
+            -w /app \
+            zeroclaw-linux-builder \
+            bash -c "cargo build --release --locked --target ${TARGET} --target-dir /tmp/target --no-default-features --features '${FEATURES}' && cp /tmp/target/${TARGET}/release/zeroclaw /output/zeroclaw && strip /output/zeroclaw && chmod 755 /output/zeroclaw"
+    fi
 fi
 
 # Locate the compiled binary
