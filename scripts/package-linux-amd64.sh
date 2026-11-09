@@ -60,6 +60,23 @@ done
 cd "$REPO_ROOT"
 mkdir -p "$OUTPUT_DIR"
 
+find_binary() {
+    if [ -f "$OUTPUT_DIR/zeroclaw" ]; then
+        echo "$OUTPUT_DIR/zeroclaw"
+    elif [ -f "$REPO_ROOT/target/$TARGET/release/zeroclaw" ]; then
+        echo "$REPO_ROOT/target/$TARGET/release/zeroclaw"
+    elif [ -f "$REPO_ROOT/dist-linux-amd64/zeroclaw" ]; then
+        echo "$REPO_ROOT/dist-linux-amd64/zeroclaw"
+    fi
+}
+
+BIN_PATH="$(find_binary)"
+
+if [ "$DO_BUILD" = false ] && [ -z "$BIN_PATH" ]; then
+    echo "==> No existing binary found for ${TARGET}. Automatically starting build..."
+    DO_BUILD=true
+fi
+
 if [ "$DO_BUILD" = true ]; then
     FEATURES="acp-bridge,agent-runtime,channel-acp-server,channel-discord,channel-email,channel-filesystem,channel-git,channel-lark,channel-matrix,channel-telegram,channel-webhook,gateway,observability-prometheus,plugins-wasm-cranelift,schema-export,tool-claude-code,tool-claude-code-runner,tool-codex-cli,tool-composio,tool-gemini-cli,tool-google-workspace,tool-jira,tool-linkedin,tool-microsoft365,tool-notion,tool-opencode-cli,tool-project-intel,tools-external,whatsapp-web"
 
@@ -95,14 +112,7 @@ DOCKERFILE
 fi
 
 # Locate the compiled binary
-BIN_PATH=""
-if [ -f "$OUTPUT_DIR/zeroclaw" ]; then
-    BIN_PATH="$OUTPUT_DIR/zeroclaw"
-elif [ -f "$REPO_ROOT/target/$TARGET/release/zeroclaw" ]; then
-    BIN_PATH="$REPO_ROOT/target/$TARGET/release/zeroclaw"
-elif [ -f "$REPO_ROOT/dist-linux-amd64/zeroclaw" ]; then
-    BIN_PATH="$REPO_ROOT/dist-linux-amd64/zeroclaw"
-fi
+BIN_PATH="$(find_binary)"
 
 if [ -z "$BIN_PATH" ] || [ ! -f "$BIN_PATH" ]; then
     echo "Error: Could not find compiled binary 'zeroclaw' for ${TARGET}." >&2
