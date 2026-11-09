@@ -17004,6 +17004,12 @@ pub enum StreamMode {
     /// only — it does not convert or retract narration already sent this turn.
     #[serde(rename = "multi_message")]
     MultiMessage,
+    /// Native streaming for channels that support draft updates directly.
+    ///
+    /// On Telegram, this uses Telegram Bot API's `sendMessageDraft` flow for
+    /// private chats, delivering real-time animated streaming. Non-private chats
+    /// and runtime draft failures fall back transparently to `partial`.
+    On,
 }
 
 /// Matrix streaming mode for progressive response delivery.
@@ -37053,6 +37059,13 @@ stream_mode = "single_message"
         let parsed: TelegramConfig =
             serde_json::from_str(r#"{"bot_token":"t","passive_group_context":true}"#).unwrap();
         assert!(parsed.passive_group_context);
+    }
+
+    #[test]
+    async fn telegram_config_deserializes_stream_mode_on() {
+        let json = r#"{"bot_token":"tok","stream_mode":"on"}"#;
+        let parsed: TelegramConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(parsed.stream_mode, StreamMode::On);
     }
 
     #[test]

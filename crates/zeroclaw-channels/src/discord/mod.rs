@@ -3517,7 +3517,7 @@ impl Channel for DiscordChannel {
             return Ok(None);
         }
         match self.stream_mode {
-            StreamMode::Off => Ok(None),
+            StreamMode::Off | StreamMode::On => Ok(None),
             StreamMode::Partial => {
                 let initial_text = if message.content.is_empty() {
                     "...".to_string()
@@ -3564,7 +3564,7 @@ impl Channel for DiscordChannel {
             return Ok(());
         }
         match self.stream_mode {
-            StreamMode::Off => Ok(()),
+            StreamMode::Off | StreamMode::On => Ok(()),
             StreamMode::Partial => {
                 // Rate-limit edits per channel.
                 {

@@ -37,14 +37,16 @@ fn supports_multi_message_streaming(&self) -> bool; // split one reply into many
 ```
 
 A channel's capability follows from its config: a channel with the
-`stream_mode` enum (off / partial / multi_message) supports both draft updates
-and multi-message; a channel with the `stream_drafts` boolean supports draft
+`stream_mode` enum (off / partial / multi_message / on) supports draft updates,
+native draft streaming, and multi-message; a channel with the `stream_drafts` boolean supports draft
 updates only. This table is generated from the channel config schema, so it
 stays correct as channels gain or lose streaming support:
 
 {{#channel-streaming-matrix}}
 
 When both the provider and the channel support streaming, the flow is: provider emits `TextDelta` → runtime passes to channel → channel edits the sent message. The edit cadence is bounded by that channel's `draft_update_interval_ms` setting to avoid rate-limiting; defaults vary by channel.
+
+**Native draft mode (`on`):** Supported on Telegram for private chats via Telegram Bot API's `sendMessageDraft` flow. This delivers real-time animated streaming previews without creating placeholder messages in chat history. Non-private chats (groups, supergroups, channel broadcasts) or runtime draft errors fall back transparently to `partial`.
 
 **Multi-message mode differs by channel:** Matrix and Discord split on `\n\n` paragraph boundaries. Telegram `multi_message` sends one message per completed agent text turn (text between tool calls), flushed via `Channel::flush_draft_turn` when the LLM turn ends.
 

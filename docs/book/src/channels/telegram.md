@@ -277,6 +277,15 @@ Telegram.
   route, `/model --user <hint>` / `/model --agent <hint>` for the broader
   scopes (if permitted), and `/models <provider>` to list models of a provider.
 
+## Streaming responses (`stream_mode`)
+
+Telegram supports four streaming modes under `[channels.telegram.<alias>]`:
+
+- `stream_mode = "off"` (default): Delivers the full reply as a single message once generation finishes.
+- `stream_mode = "on"`: Uses Telegram's native `sendMessageDraft` API for private direct-message chats. Characters appear progressively with native client typing animation without posting temporary placeholder messages into chat history. Non-private chats (groups, supergroups, topics) and runtime draft errors automatically fall back to `partial`.
+- `stream_mode = "partial"`: Edits a placeholder message in place at interval `draft_update_interval_ms` (default: 1000 ms).
+- `stream_mode = "multi_message"`: Sends completed agent text turns as separate messages.
+
 ## Logs and troubleshooting
 
 For an installed service:
